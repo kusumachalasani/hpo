@@ -96,6 +96,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         """Serve a GET request."""
         if re.search(HPOSupportedTypes.API_ENDPOINT, self.path):
+            logger.info('Get request for experiment_trials')
             query = parse_qs(urlparse(self.path).query)
             if "experiment_name" not in query or "trial_number" not in query:
                 error_msg = HPOErrorConstants.MISSING_PARAMETERS
@@ -114,6 +115,23 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 logger.info("Trial_Number = " + str(
                     hpo_service.instance.getExperiment(query["experiment_name"][0]).trialDetails.trial_number))
                 data = hpo_service.instance.get_trial_json_object(query["experiment_name"][0])
+                self._set_response(200, data)
+        elif re.search(HPOSupportedTypes.API_ENDPOINT2, self.path):
+            logger.info('GET IMPORTANCE VALUES')
+            query = parse_qs(urlparse(self.path).query)
+            if "experiment_name" not in query:
+                error_msg = HPOErrorConstants.MISSING_PARAMETERS
+                logger.error(error_msg)
+                self._set_response(400, error_msg)
+                return
+            error_msg = self.validate_experiment_name(query["experiment_name"][0])
+            if error_msg:
+                self._set_response(400, error_msg)
+            else:
+                logger.info("Experiment_Name = " + str(
+                    hpo_service.instance.getExperiment(query["experiment_name"][0]).experiment_name))
+                data = hpo_service.instance.get_importance(query["experiment_name"][0])
+                logger.info("IMPORTANCE DATA" + str(data))
                 self._set_response(200, data)
         elif self.path == "/health":
             if self.getHomeScreen():

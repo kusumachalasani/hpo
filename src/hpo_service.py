@@ -153,5 +153,27 @@ class HpoService:
 
         return recommendedConfig
 
+    def get_trial_json_object(self, id_):
+        experiment: optuna_hpo.HpoExperiment = self.getExperiment(id_)
+        """Return the trial json object."""
+        if experiment.hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
+            try:
+                experiment.resultsAvailableCond.acquire()
+                trialConfig = json.dumps(experiment.trialDetails.trial_json_object)
+            finally:
+                experiment.resultsAvailableCond.release()
+            return trialConfig
+
+    def get_importance(self, id_):
+        experiment: optuna_hpo.HpoExperiment = self.getExperiment(id_)
+        """Return the importance json object."""
+        try:
+            experiment.resultsAvailableCond.acquire()
+           # experimentImportance = experiment.importance
+            experimentImportance = experiment.importance()
+        finally:
+            experiment.resultsAvailableCond.release()
+        return experimentImportance
+
 
 instance: HpoService = HpoService()

@@ -29,6 +29,7 @@ class HPOSupportedTypes:
     SERVER_HOSTNAME = "0.0.0.0"
     SERVER_PORT = 8085
     API_ENDPOINT = "/experiment_trials"
+    API_ENDPOINT2 = "/importance"
     CONTENT_TYPE = "application/json"
 
 

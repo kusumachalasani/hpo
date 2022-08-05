@@ -59,6 +59,8 @@ class HpoExperiment:
     started = False
     # recommended_config (json): A JSON containing the recommended config.
     recommended_config = {}
+    # importance (json): A JSON containing the hyper parameter importance
+    importance = {}
 
     def __init__(self, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_,
                  objective_function, tunables, value_type):
@@ -145,7 +147,7 @@ class HpoExperiment:
 
         # Create a study object
         try:
-            study = optuna.create_study(direction=self.direction, sampler=sampler, study_name=self.experiment_name)
+            study = optuna.create_study(direction=self.direction, sampler=sampler, study_name=self.experiment_name, storage="postgresql+psycopg2://hpodbuser:hpodbpwd@localhost:5432/hpodb")
 
 
             # Execute an optimization by using an 'Objective' instance
@@ -161,6 +163,11 @@ class HpoExperiment:
             logger.info("Best trial: " + str(study.best_trial))
 
             logger.debug("All trials: " + str(trials))
+
+            logger.info("Calculating the importance... ")
+            importance = optuna.importance.get_param_importances(study)
+            logger.info("Hyper Parameter Importances: " + str(importance))
+
 
             try:
                 self.resultsAvailableCond.acquire()
@@ -192,6 +199,53 @@ class HpoExperiment:
             logger.info("Recommended config: " + str(self.recommended_config))
         except:
             logger.warn("Experiment stopped: " + str(self.experiment_name))
+
+    def importance(self):
+        """
+        Get the hyper parameter importance values for the completed trials.
+
+        Parameters:
+            experiment_name (str): The name of the application that is being optimized.
+        """
+        # Load a study object
+        try:
+            logger.info("IS IT RUNNING IMPORTANCE FUNCTION ??? " + self.experiment_name)
+            study = optuna.load_study(study_name=self.experiment_name, storage="postgresql+psycopg2://hpodbuser:hpodbpwd@localhost:5432/hpodb")
+            logger.info("Loading the study complete ")
+            # Get the importance for all parameters defined in search space
+            importance = optuna.importance.get_param_importances(study)
+            logger.info("Calculating the importance... ")
+
+            # Get the importance
+            logger.info("Hyper Parameter Importances: " + str(importance))
+
+            try:
+                self.resultsAvailableCond.acquire()
+                importances_value = {"objective_function": {
+                    "name": self.objective_function,
+                }, "importance": []}
+
+                for tunable in self.tunables:
+                    for key, value in importance.items():
+                        if key == tunable["name"]:
+                            importance_value = value
+                    importances_value["importance"].append(
+                        {
+                            "name": tunable["name"],
+                            "value": importance_value,
+                            "value_type": tunable["value_type"]
+                        }
+                    )
+
+                self.importance["id"] = self.id_
+                self.importance["experiment_name"] = self.experiment_name
+                self.importance["importances_value"] = importances_value
+            finally:
+                self.resultsAvailableCond.release()
+
+            logger.info("Importances: " + str(self.importance))
+        except:
+            logger.warn("Issues in loading study and calculate the importance: " + str(study))
 
     def stop(self):
         try:
