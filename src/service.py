@@ -14,13 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import sys
-import time
 import rest_service, grpc_service
 import threading
 import signal
 from logger import get_logger
-from db import database
-from db.database import POSTGRESQL_DB
+#from db import database
+#from db.database import POSTGRESQL_DB
 
 shutdown = threading.Event()
 logger = get_logger("hpo-service")
@@ -40,10 +39,6 @@ def main():
     restService = threading.Thread(target=rest_service.main)
     restService.daemon = True
     restService.start()
-
-    # Start postgresDB service
-    database.instance.start_postgres()
-    time.sleep(120)
 
     shutdown.wait()
 
