@@ -163,14 +163,15 @@ class HpoService:
         ## Convert a dict into json object
         return json.dumps(importance)
 
-    def get_experiment_plot(self, id_):
+    def get_experiment_plot(self, id_, plot_type, plot_tunables):
         experiment: optuna_hpo.HpoExperiment = self.getExperiment(id_)
         try:
             experiment.resultsAvailableCond.acquire()
-            plot = experiment.experiment_plot()
+            plot = experiment.experiment_plot(id_, plot_type, plot_tunables)
+
         finally:
             experiment.resultsAvailableCond.release()
-        ## Convert a dict into json object
+
         return plot
 
 

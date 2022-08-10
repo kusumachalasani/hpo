@@ -218,14 +218,33 @@ class HpoExperiment:
         except RuntimeError:
             logger.warn("Encountered zero total variance in all trees")
         except:
-            logger.warn("ENcounted issues calculating hyperparameter importance")
+            logger.warn("Encounted issues calculating hyperparameter importance")
 
-    def experiment_plot(self):
+    def experiment_plot(self, id_, plot_type, plot_tunables):
         try:
             # Load the study based on experiment name
             logger.info("Experiment name " + self.experiment_name)
+            logger.info("Experiment plot " + plot_type)
+            logger.info("Experiment plot tunables " + plot_tunables)
+
+            if plot_tunables == "None":
+                tunables_list = None
+            else:
+                # Convert a string to list
+                tunables_list = list(plot_tunables.split(","))
+
             study = optuna.load_study(study_name=self.experiment_name, storage=f"postgresql+psycopg2://hpodbuser:hpodbpwd@{DATABASE_HOST}:5432/hpodb")
-            plot = optuna.visualization.plot_optimization_history(study)
+            if plot_type == "optimization_history":
+                plot = optuna.visualization.plot_optimization_history(study)
+            elif plot_type == "param_importances":
+                plot = optuna.visualization.plot_param_importances(study, params=tunables_list)
+            elif plot_type == "slice":
+                plot = optuna.visualization.plot_slice(study, params=tunables_list)
+            elif plot_type == "parallel_coordinate":
+                plot = optuna.visualization.plot_parallel_coordinate(study, params=tunables_list)
+            elif plot_type == "contour":
+                plot = optuna.visualization.plot_contour(study, params=tunables_list)
+
             ## Opens the graph in browser
             #plot.show()
             # Writes into a html file.

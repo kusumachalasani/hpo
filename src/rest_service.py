@@ -129,7 +129,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 				logger.info("Experiment_Name = " + str(
 					hpo_service.instance.getExperiment(query["experiment_name"][0]).experiment_name))
 				data = hpo_service.instance.get_experiment_importance(query["experiment_name"][0])
-				logger.info("Hyper Parameter Importances: " + str(data))
+				#logger.info("Hyper Parameter Importances: " + str(data))
 				data_error_msg = self.validate_importance_data(data)
 				if data_error_msg:
 					self._set_response(400, error_msg)
@@ -142,13 +142,27 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 				logger.error(error_msg)
 				self._set_response(400, error_msg)
 				return
+			# TODO : Validate plot type
+			if "type" not in query:
+				logger.info("Plot type not defined. Defaulting it to optimization_history")
+				plot_type = "optimization_history"
+			else:
+				plot_type = query["type"][0]
+
+			# TODO : Validate tunables list
+			if "tunables" not in query:
+				logger.info("Tunables not defined. Defaulting it to use all tunables in the experiment")
+				plot_tunables = "None"
+			else:
+				plot_tunables = query["tunables"][0]
+
 			error_msg = self.validate_experiment_name(query["experiment_name"][0])
 			if error_msg:
 				self._set_response(400, error_msg)
 			else:
 				logger.info("Experiment_Name = " + str(
 					hpo_service.instance.getExperiment(query["experiment_name"][0]).experiment_name))
-				data = hpo_service.instance.get_experiment_plot(query["experiment_name"][0])
+				data = hpo_service.instance.get_experiment_plot(query["experiment_name"][0], plot_type, plot_tunables)
 				#logger.info("Getting plot: " + str(data))
 				#TODO: Validate plot data values
 				#data_error_msg = self.validate_importance_data(data)
