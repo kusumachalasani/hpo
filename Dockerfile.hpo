@@ -46,7 +46,7 @@ RUN microdnf install -y python39 gcc-c++ python39-devel python39-pip\
 USER ${UID}
 
 # copy the requirements file to the app directory to install required modules
-COPY requirements.txt index.html ${HPO_HOME}/app/
+COPY requirements.txt index.html experiment.html ${HPO_HOME}/app/
 
 # Copy ML hyperparameter tuning code
 COPY src ${HPO_HOME}/app/src/
