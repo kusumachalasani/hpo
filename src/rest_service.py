@@ -33,9 +33,8 @@ autotune_object_ids = {}
 search_space_json = []
 
 fileDir = os.path.dirname(os.path.realpath('index.html'))
-filename = os.path.join(fileDir, 'index.html')
-welcome_page = filename
-
+welcome_page = os.path.join(fileDir, 'index.html')
+experiment_page = os.path.join(fileDir, 'experiment.html')
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
 	"""
@@ -137,6 +136,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 					hpo_service.instance.getExperiment(query["experiment_name"][0]).experiment_name))
 				data = self.getPlots(query["experiment_name"][0], plot_type)
 				self._set_response(200, data)
+		elif re.search("/listexperiments", self.path):
+			data = self.listExperiments()
+			self._set_response(200, data)
 		elif self.path == "/health":
 			if self.getHomeScreen():
 				self._set_response(200, 'OK')
@@ -148,8 +150,16 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 		else:
 			self._set_response(404, HPOErrorConstants.NOT_FOUND)
 
+
+
 	def getHomeScreen(self):
 		fin = open(welcome_page)
+		content = fin.read()
+		fin.close()
+		return content
+
+	def listExperiments(self):
+		fin = open(experiment_page)
 		content = fin.read()
 		fin.close()
 		return content

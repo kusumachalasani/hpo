@@ -147,6 +147,11 @@ class HpoExperiment:
         # Create a study object
         try:
             study = optuna.create_study(direction=self.direction, sampler=sampler, study_name=self.experiment_name)
+            # Update experiment html with the experiment name
+            try:
+                self.updateExperimentHtml()
+            except:
+                logger.info("Error in updating experiment html")
 
             # Execute an optimization by using an 'Objective' instance
             study.optimize(Objective(self), n_trials=self.total_trials, n_jobs=self.parallel_trials)
@@ -193,7 +198,7 @@ class HpoExperiment:
                     if plot_type == "parallel_coordinate":
                         plot = optuna.visualization.plot_parallel_coordinate(study)
                         plotFile = plotsDir + "/" + self.experiment_name + "/parallel_coordinate.html"
-                    # Commenting out contour plots as it gets hung sometimes when there are lot of tunables for a 100 trial experiment
+                    # Commenting out contour plots for now as it gets hung sometimes when there are lot of tunables for a 100 trial experiment
                     #if plot_type == "contour":
                         #plot = optuna.visualization.plot_contour(study)
                         #plotFile = plotsDir + "/" + self.experiment_name + "/contour.html"
@@ -204,6 +209,9 @@ class HpoExperiment:
                     logger.info("ACCESS " + plot_type + " CHART AT <REST_SERVICE_URL>/plot?" + "experiment_name=" + self.experiment_name + "&type=" + plot_type)
                 except:
                     logger.warn("Issues creating" + plot_type + " html file")
+
+            # Update plots in listExperiments
+            self.updatePlotsHtml()
 
             try:
                 self.resultsAvailableCond.acquire()
@@ -244,6 +252,57 @@ class HpoExperiment:
         finally:
             self.resultsAvailableCond.release()
 
+    def updateExperimentHtml(self):
+        try:
+            self.resultsAvailableCond.acquire()
+            expDir = os.path.dirname(os.path.realpath('experiment.html'))
+            filename = os.path.join(expDir, 'experiment.html')
+            addline = """<h2 class="expdetails">""" + self.experiment_name + """</h2>\n"""
+
+            with open(filename, 'r+') as f:
+                lines = f.readlines()
+                for i, line in enumerate(lines):
+                    if line.__contains__('No Experiments found!'):
+                        lines[i] = ""
+                    elif line.__contains__('<!--Add Experiments-->'):
+                        lines[i] = lines[i]+addline
+                    f.truncate()
+                    f.seek(0)
+                    # rewrite into the file
+                    for line in lines:
+                        f.write(line)
+        except:
+            logger.info("Issue updating experiment html")
+        finally:
+            self.resultsAvailableCond.release()
+
+    def updatePlotsHtml(self):
+        try:
+            self.resultsAvailableCond.acquire()
+            expDir = os.path.dirname(os.path.realpath('experiment.html'))
+            filename = os.path.join(expDir, 'experiment.html')
+            addline = """<h2 class="expdetails">""" + self.experiment_name + """</h2>\n""" \
+                """<ul> <li class="expdetails"> Plots <ul>\n""" \
+                """<li class="expdetails"><a href="/plot?experiment_name=""" + self.experiment_name + """&type=tunable_importance">Tunable_Importance</a></li>\n""" \
+                """<li class="expdetails"><a href="/plot?experiment_name=""" + self.experiment_name + """&type=slice">Slice</a></li>\n""" \
+                """<li class="expdetails"><a href="/plot?experiment_name=""" + self.experiment_name + """&type=optimization_history">Optimization History</a></li>\n""" \
+                """<li class="expdetails"><a href="/plot?experiment_name=""" + self.experiment_name + """&type=parallel_coordinate">Parallel_Coordinate</a></li></ul></li></ul>\n"""
+
+            with open(filename, 'r+') as f:
+                lines = f.readlines()
+                for i, line in enumerate(lines):
+                    checkline = ">" + self.experiment_name + "</h2>"
+                    if line.__contains__(checkline):
+                        lines[i] = addline
+                    f.truncate()
+                    f.seek(0)
+                    # rewrite into the file
+                    for line in lines:
+                        f.write(line)
+        except:
+            logger.info("Issue updating plots in experiment html")
+        finally:
+            self.resultsAvailableCond.release()
 
 class Objective(TrialDetails):
     """
