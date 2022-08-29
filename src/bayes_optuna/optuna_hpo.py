@@ -178,37 +178,8 @@ class HpoExperiment:
             except:
                 logger.warn("Encountered issues calculating tunable importance")
 
-            # Generate different plots
-            plots = ["tunable_importance", "optimization_history", "slice", "parallel_coordinate"]
-            for plot_type in plots:
-                try:
-                    dirName = "plots/" + self.experiment_name
-                    os.makedirs(dirName, exist_ok=True)
-                    plotsDir = os.path.dirname(os.path.realpath(dirName))
-
-                    if plot_type == "tunable_importance":
-                        plot = optuna.visualization.plot_param_importances(study)
-                        plotFile = plotsDir + "/" + self.experiment_name + "/tunable_importance.html"
-                    if plot_type == "optimization_history":
-                        plot = optuna.visualization.plot_optimization_history(study)
-                        plotFile = plotsDir + "/" + self.experiment_name + "/optimization_history.html"
-                    if plot_type == "slice":
-                        plot = optuna.visualization.plot_slice(study)
-                        plotFile = plotsDir + "/" + self.experiment_name + "/slice.html"
-                    if plot_type == "parallel_coordinate":
-                        plot = optuna.visualization.plot_parallel_coordinate(study)
-                        plotFile = plotsDir + "/" + self.experiment_name + "/parallel_coordinate.html"
-                    # Commenting out contour plots for now as it gets hung sometimes when there are lot of tunables for a 100 trial experiment
-                    #if plot_type == "contour":
-                        #plot = optuna.visualization.plot_contour(study)
-                        #plotFile = plotsDir + "/" + self.experiment_name + "/contour.html"
-
-                    func = open(plotFile, "w")
-                    func.write(plot.to_html())
-                    func.close()
-                    logger.info("ACCESS " + plot_type + " CHART AT <REST_SERVICE_URL>/plot?" + "experiment_name=" + self.experiment_name + "&type=" + plot_type)
-                except:
-                    logger.warn("Issues creating" + plot_type + " html file")
+            #Generate plots
+            self.generatePlots(study)
 
             # Update plots in listExperiments
             self.updatePlotsHtml()
@@ -251,6 +222,40 @@ class HpoExperiment:
             self.resultsAvailableCond.notify()
         finally:
             self.resultsAvailableCond.release()
+
+    def generatePlots(self, study):
+
+        # Generate different plots
+        plots = ["tunable_importance", "optimization_history", "slice", "parallel_coordinate"]
+        for plot_type in plots:
+            try:
+                dirName = "plots/" + self.experiment_name
+                os.makedirs(dirName, exist_ok=True)
+                plotsDir = os.path.dirname(os.path.realpath(dirName))
+
+                if plot_type == "tunable_importance":
+                    plot = optuna.visualization.plot_param_importances(study)
+                    plotFile = plotsDir + "/" + self.experiment_name + "/tunable_importance.html"
+                if plot_type == "optimization_history":
+                    plot = optuna.visualization.plot_optimization_history(study)
+                    plotFile = plotsDir + "/" + self.experiment_name + "/optimization_history.html"
+                if plot_type == "slice":
+                    plot = optuna.visualization.plot_slice(study)
+                    plotFile = plotsDir + "/" + self.experiment_name + "/slice.html"
+                if plot_type == "parallel_coordinate":
+                    plot = optuna.visualization.plot_parallel_coordinate(study)
+                    plotFile = plotsDir + "/" + self.experiment_name + "/parallel_coordinate.html"
+                # Commenting out contour plots for now as it gets hung sometimes when there are lot of tunables for a 100 trial experiment
+                #if plot_type == "contour":
+                #plot = optuna.visualization.plot_contour(study)
+                #plotFile = plotsDir + "/" + self.experiment_name + "/contour.html"
+
+                func = open(plotFile, "w")
+                func.write(plot.to_html())
+                func.close()
+                logger.info("ACCESS " + plot_type + " CHART AT <REST_SERVICE_URL>/plot?" + "experiment_name=" + self.experiment_name + "&type=" + plot_type)
+            except:
+                logger.warn("Issues creating" + plot_type + " html file")
 
     def updateExperimentHtml(self):
         try:
