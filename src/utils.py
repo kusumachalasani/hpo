@@ -28,7 +28,7 @@ class HPOSupportedTypes:
     N_JOBS = 1
     N_TRIALS = 10
     SERVER_HOSTNAME = "0.0.0.0"
-    SERVER_PORT = 8094
+    SERVER_PORT = 8095
     API_ENDPOINT = "/experiment_trials"
     CONTENT_TYPE = "application/json"
 
