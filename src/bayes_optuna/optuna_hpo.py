@@ -142,7 +142,7 @@ class HpoExperiment:
             value_type (string): Value type of the objective function.
         """
         # Set the logging level for the Optuna’s root logger
-        optuna.logging.set_verbosity(optuna.logging.WARNING)
+        optuna.logging.set_verbosity(optuna.logging.DEBUG)
         # Propagate all of Optuna log outputs to the root logger
         optuna.logging.enable_propagation()
         # Disable the default handler of the Optuna’s root logger
