@@ -239,7 +239,9 @@ class HpoExperiment:
             logger.warn("Cannot evaluate tunable importance with only a single trial")
         except RuntimeError:
             logger.warn("Encountered zero total variance to calculate tunable importance")
-        except:
+        except Exception as e:
+            logger.warn(f"Issues calculating: {str(e)}")
+            logger.warn(f"Error details: {traceback.format_exc()}")
             logger.warn("Encountered issues calculating tunable importance")
 
     def generate_plots(self, study):
