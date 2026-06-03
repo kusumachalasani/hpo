@@ -92,7 +92,7 @@ class HpoService:
             logger.info("[DEBUG startExperiment] Condition lock acquired. Waiting for background thread notification...")
 
             # This is where the 10-second freeze happens
-            value = started.wait(10)  # wait with timeout of 10s
+            value = started.wait(30)  # wait with timeout of 10s
 
             elapsed_wait = time.time() - wait_start_time
             logger.info(f"[DEBUG startExperiment] Exited wait block. Total time spent waiting: {elapsed_wait:.2f} seconds.")
