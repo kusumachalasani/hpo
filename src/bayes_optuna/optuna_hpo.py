@@ -208,11 +208,14 @@ class HpoExperiment:
             value_type (string): Value type of the objective function.
         """
         # Set the logging level for the Optuna’s root logger
-        optuna.logging.set_verbosity(optuna.logging.WARNING)
+        optuna.logging.set_verbosity(optuna.logging.DEBUG)
         # Propagate all of Optuna log outputs to the root logger
         optuna.logging.enable_propagation()
         # Disable the default handler of the Optuna’s root logger
         optuna.logging.disable_default_handler()
+
+        import traceback
+        logger.info("[DEBUG THREAD-ENTRY] Thread-2 has successfully entered the recommend() target function!")
 
         # Choose a sampler based on the value of ml_algo_impl
         if self.hpo_algo_impl == "optuna_tpe":
@@ -224,6 +227,8 @@ class HpoExperiment:
 
         # Create a study object
         try:
+            logger.info("[DEBUG THREAD-ENTRY] Proceeding to execute Optuna recommendation logic...")
+
             study = optuna.create_study(direction=self.direction, sampler=sampler, study_name=self.experiment_name)
 
             # Update experiment html with the experiment name
@@ -232,8 +237,11 @@ class HpoExperiment:
             except:
                 logger.info("Error in updating experiment html")
 
+            
+            logger.info("[DEBUG THREAD-ENTRY] Starting the study in optuna  recommendation logic...")
             # Execute an optimization by using an 'Objective' instance
             study.optimize(Objective(self), n_trials=self.total_trials, n_jobs=self.parallel_trials)
+            logger.info("[DEBUG THREAD-ENTRY] Ending  the study in optuna  recommendation logic...")
 
             self.trialDetails.trial_number = -1
 
