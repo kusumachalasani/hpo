@@ -90,32 +90,32 @@ class HpoExperiment:
         self.thread = threading.Thread(target=self.recommend)
 
     def start(self) -> threading.Condition:
-    logger.info(f"[DEBUG START-METHOD] start() invoked for experiment: {self.name if hasattr(self, 'name') else 'unknown'}")
-    
-    try:
-        logger.info("[DEBUG START-METHOD] Attempting to acquire experimentStartedCond lock...")
-        self.experimentStartedCond.acquire()
-        logger.info("[DEBUG START-METHOD] Lock acquired successfully.")
-        
-        # Log thread properties
-        logger.info(f"[DEBUG START-METHOD] Configuring background thread. Name: {self.thread.name}, Alive before start: {self.thread.is_alive()}")
-        self.thread.daemon = True
-        
-        logger.info("[DEBUG START-METHOD] Calling self.thread.start()...")
-        self.thread.start()
-        logger.info(f"[DEBUG START-METHOD] self.thread.start() executed. Background thread alive status: {self.thread.is_alive()}")
-        
-    except Exception as start_err:
-        logger.error(f"[DEBUG START-METHOD CRITICAL] Failed during thread initialization wrapper: {str(start_err)}")
-        import traceback
-        logger.error(traceback.format_exc())
-        raise start_err
-    finally:
-        self.experimentStartedCond.release()
-        logger.info("[DEBUG START-METHOD] Released experimentStartedCond lock.")
-        
-    logger.info("[DEBUG START-METHOD] Returning condition variable back to orchestrator.")
-    return self.experimentStartedCond
+        logger.info(f"[DEBUG START-METHOD] start() invoked for experiment: {self.name if hasattr(self, 'name') else 'unknown'}")
+
+        try:
+          logger.info("[DEBUG START-METHOD] Attempting to acquire experimentStartedCond lock...")
+          self.experimentStartedCond.acquire()
+          logger.info("[DEBUG START-METHOD] Lock acquired successfully.")
+
+          # Log thread properties
+          logger.info(f"[DEBUG START-METHOD] Configuring background thread. Name: {self.thread.name}, Alive before start: {self.thread.is_alive()}")
+          self.thread.daemon = True
+
+          logger.info("[DEBUG START-METHOD] Calling self.thread.start()...")
+          self.thread.start()
+          logger.info(f"[DEBUG START-METHOD] self.thread.start() executed. Background thread alive status: {self.thread.is_alive()}")
+
+        except Exception as start_err:
+          logger.error(f"[DEBUG START-METHOD CRITICAL] Failed during thread initialization wrapper: {str(start_err)}")
+          import traceback
+          logger.error(traceback.format_exc())
+          raise start_err
+        finally:
+          self.experimentStartedCond.release()
+          logger.info("[DEBUG START-METHOD] Released experimentStartedCond lock.")
+
+        logger.info("[DEBUG START-METHOD] Returning condition variable back to orchestrator.")
+        return self.experimentStartedCond
 
     def start1(self) -> threading.Condition:
         try:
@@ -143,7 +143,7 @@ class HpoExperiment:
                 logger.info("[DEBUG THREAD] notifyStarted attempting to acquire experimentStartedCond...")
                 self.experimentStartedCond.acquire()
                 self.started = True
-                
+
                 logger.info("[DEBUG THREAD] Dispatched .notify() to unblock main REST thread!")
                 self.experimentStartedCond.notify()
             finally:
@@ -155,11 +155,11 @@ class HpoExperiment:
         try:
             logger.info("[DEBUG THREAD] Acquiring resultsAvailableCond lock...")
             self.resultsAvailableCond.acquire()
-            
+
             logger.info("[DEBUG THREAD] WARNING: Thread entering an indefinite WAIT status on resultsAvailableCond! (Waiting for API to post results...)")
             self.resultsAvailableCond.wait()
             logger.info("[DEBUG THREAD] Thread Woke up from resultsAvailableCond wait!")
-            
+
             if self.isRunning == False:
                 raise Exception("Stopping experiment: {}".format(self.experiment_name))
             result_value = self.trialDetails.result_value

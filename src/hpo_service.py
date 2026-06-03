@@ -64,7 +64,7 @@ class HpoService:
         try:
             logger.info("[DEBUG startExperiment] Attempting to acquire expStateCond lock...")
             self.expStateCond.acquire()
-            
+
             experiment: optuna_hpo.HpoExperiment = self.experiments.get(name)
             logger.info(f"[DEBUG startExperiment] Experiment lookup result: {'Found' if experiment else 'NOT Found (None)'}")
 
@@ -90,7 +90,7 @@ class HpoService:
         try:
             started.acquire()
             logger.info("[DEBUG startExperiment] Condition lock acquired. Waiting for background thread notification...")
-            
+
             # This is where the 10-second freeze happens
             value = started.wait(10)  # wait with timeout of 10s
 
