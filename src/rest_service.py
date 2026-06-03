@@ -27,7 +27,7 @@ from json_validate import validate_trial_generate_json
 from tunables import get_all_tunables
 from logger import get_logger
 from utils import HPOErrorConstants, HPOSupportedTypes, HPOMessages
-
+import time
 import hpo_service
 
 logger = get_logger(__name__)
@@ -307,19 +307,35 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 def get_search_create_study(search_space_json, operation):
 	if operation == "EXP_TRIAL_GENERATE_NEW":
-		experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, \
-		value_type = get_all_tunables(search_space_json)
+        experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, \
+        value_type = get_all_tunables(search_space_json)
 
-		logger.info("Total Trials = " + str(total_trials))
-		logger.info("Parallel Trials = " + str(parallel_trials))
+        logger.info("Total Trials = " + str(total_trials))
+        logger.info("Parallel Trials = " + str(parallel_trials))
 
-		hpo_service.instance.newExperiment(id_, experiment_name, total_trials, parallel_trials, direction,
-										   hpo_algo_impl, objective_function, tunables, value_type)
-		logger.info("Starting Experiment: " + experiment_name)
-		# check response, it will have error message if the experiment timed out else nothing will be returned
-		response = hpo_service.instance.startExperiment(experiment_name)
-		if response:
-			return response
+        hpo_service.instance.newExperiment(id_, experiment_name, total_trials, parallel_trials, direction,
+                                           hpo_algo_impl, objective_function, tunables, value_type)
+        logger.info("Starting Experiment: " + experiment_name)
+
+        # --- DEBUG ADDITIONS START ---
+        start_time = time.time()
+        logger.info(f"[DEBUG REST] Invoking hpo_service.instance.startExperiment at timestamp: {start_time}")
+        # -----------------------------
+
+        # check response, it will have error message if the experiment timed out else nothing will be returned
+        response = hpo_service.instance.startExperiment(experiment_name)
+
+        # --- DEBUG ADDITIONS START ---
+        elapsed_time = time.time() - start_time
+        logger.info(f"[DEBUG REST] startExperiment execution completed in {elapsed_time:.2f} seconds.")
+        if response:
+            logger.error(f"[DEBUG REST] startExperiment returned a failure response payload: {response}")
+        else:
+            logger.info("[DEBUG REST] startExperiment returned successfully (empty/None response).")
+        # -----------------------------
+
+        if response:
+            return response
 
 
 def main(server_port=8085):

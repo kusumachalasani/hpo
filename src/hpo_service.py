@@ -20,6 +20,7 @@ from bayes_optuna import optuna_hpo
 from exceptions import ExperimentNotFoundError
 from logger import get_logger
 from utils import HPOErrorConstants, HPOSupportedTypes, HPOMessages
+import time
 
 logger = get_logger(__name__)
 
@@ -54,7 +55,68 @@ class HpoService:
         finally:
             self.expStateCond.release()
 
+
+    import time
+
     def startExperiment(self, name):
+        logger.info(f"[DEBUG startExperiment] Called for experiment name: '{name}'")
+
+        try:
+            logger.info("[DEBUG startExperiment] Attempting to acquire expStateCond lock...")
+            self.expStateCond.acquire()
+            
+            experiment: optuna_hpo.HpoExperiment = self.experiments.get(name)
+            logger.info(f"[DEBUG startExperiment] Experiment lookup result: {'Found' if experiment else 'NOT Found (None)'}")
+
+        except Exception as lock_err:
+            logger.error(f"[DEBUG startExperiment] Error during registry lookup: {str(lock_err)}")
+            raise lock_err
+
+        finally:
+            self.expStateCond.release()
+            logger.info("[DEBUG startExperiment] Released expStateCond lock.")
+
+        if not experiment:
+            logger.error(f"[DEBUG startExperiment] Aborting. Cannot start a non-existent experiment: '{name}'")
+            return "Error: Experiment not found in registry"
+
+        logger.info(f"[DEBUG startExperiment] Triggering experiment.start() for '{name}'...")
+        started: threading.Condition = experiment.start()
+
+        # Track exactly how long the condition variable blocks execution
+        wait_start_time = time.time()
+        logger.info(f"[DEBUG startExperiment] Acquired condition handle. Entering 10s wait block at timestamp: {wait_start_time}")
+
+        try:
+            started.acquire()
+            logger.info("[DEBUG startExperiment] Condition lock acquired. Waiting for background thread notification...")
+            
+            # This is where the 10-second freeze happens
+            value = started.wait(10)  # wait with timeout of 10s
+
+            elapsed_wait = time.time() - wait_start_time
+            logger.info(f"[DEBUG startExperiment] Exited wait block. Total time spent waiting: {elapsed_wait:.2f} seconds.")
+            logger.info(f"[DEBUG startExperiment] Return value from started.wait(10): {value} (True = notified, False = timed out)")
+
+        except Exception as wait_err:
+            logger.error(f"[DEBUG startExperiment] Exception occurred during wait state: {str(wait_err)}")
+            raise wait_err
+
+        finally:
+            started.release()
+            logger.info("[DEBUG startExperiment] Released condition lock.")
+
+        # check experiment-start status, it will be timed out if the response is delayed from the implemented algo
+        # for more than 10 seconds .
+        if not value:
+            logger.error(f"[DEBUG startExperiment] Timeout criteria met! {HPOErrorConstants.EXPERIMENT_TIMED_OUT}")
+            logger.error(f"[DEBUG startExperiment] The background thread for '{name}' failed to signal .notify() within 10 seconds.")
+            logger.error(HPOErrorConstants.EXPERIMENT_TIMED_OUT)
+            return HPOErrorConstants.EXPERIMENT_TIMED_OUT
+
+        logger.info(f"[DEBUG startExperiment] Experiment '{name}' successfully verified as started!")
+
+    def startExperiment_org(self, name):
         try:
             self.expStateCond.acquire()
             experiment: optuna_hpo.HpoExperiment = self.experiments.get(name)

@@ -20,6 +20,7 @@ import threading
 import json
 import pathlib
 import shutil
+import time
 
 from logger import get_logger
 
@@ -89,6 +90,34 @@ class HpoExperiment:
         self.thread = threading.Thread(target=self.recommend)
 
     def start(self) -> threading.Condition:
+    logger.info(f"[DEBUG START-METHOD] start() invoked for experiment: {self.name if hasattr(self, 'name') else 'unknown'}")
+    
+    try:
+        logger.info("[DEBUG START-METHOD] Attempting to acquire experimentStartedCond lock...")
+        self.experimentStartedCond.acquire()
+        logger.info("[DEBUG START-METHOD] Lock acquired successfully.")
+        
+        # Log thread properties
+        logger.info(f"[DEBUG START-METHOD] Configuring background thread. Name: {self.thread.name}, Alive before start: {self.thread.is_alive()}")
+        self.thread.daemon = True
+        
+        logger.info("[DEBUG START-METHOD] Calling self.thread.start()...")
+        self.thread.start()
+        logger.info(f"[DEBUG START-METHOD] self.thread.start() executed. Background thread alive status: {self.thread.is_alive()}")
+        
+    except Exception as start_err:
+        logger.error(f"[DEBUG START-METHOD CRITICAL] Failed during thread initialization wrapper: {str(start_err)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise start_err
+    finally:
+        self.experimentStartedCond.release()
+        logger.info("[DEBUG START-METHOD] Released experimentStartedCond lock.")
+        
+    logger.info("[DEBUG START-METHOD] Returning condition variable back to orchestrator.")
+    return self.experimentStartedCond
+
+    def start1(self) -> threading.Condition:
         try:
             self.experimentStartedCond.acquire()
             self.thread.daemon = True
@@ -107,6 +136,43 @@ class HpoExperiment:
         return started
 
     def notifyStarted(self):
+        logger.info(f"[DEBUG THREAD] notifyStarted() invoked for experiment. Current status: {self.hasStarted()}")
+        # notify hpo_service.startExperiment() that experiment is ready to accept results
+        if not self.hasStarted():
+            try:
+                logger.info("[DEBUG THREAD] notifyStarted attempting to acquire experimentStartedCond...")
+                self.experimentStartedCond.acquire()
+                self.started = True
+                
+                logger.info("[DEBUG THREAD] Dispatched .notify() to unblock main REST thread!")
+                self.experimentStartedCond.notify()
+            finally:
+                self.experimentStartedCond.release()
+                logger.info("[DEBUG THREAD] Released experimentStartedCond in notifyStarted.")
+
+    def perform_experiment(self):
+        logger.info("[DEBUG THREAD] ---> ENTERED perform_experiment(). Checking for results availability...")
+        try:
+            logger.info("[DEBUG THREAD] Acquiring resultsAvailableCond lock...")
+            self.resultsAvailableCond.acquire()
+            
+            logger.info("[DEBUG THREAD] WARNING: Thread entering an indefinite WAIT status on resultsAvailableCond! (Waiting for API to post results...)")
+            self.resultsAvailableCond.wait()
+            logger.info("[DEBUG THREAD] Thread Woke up from resultsAvailableCond wait!")
+            
+            if self.isRunning == False:
+                raise Exception("Stopping experiment: {}".format(self.experiment_name))
+            result_value = self.trialDetails.result_value
+            trial_result = self.trialDetails.trial_result
+        except Exception as e:
+            logger.error(f"[DEBUG THREAD CRITICAL] Error in perform_experiment: {str(e)}")
+            raise e
+        finally:
+            self.resultsAvailableCond.release()
+            logger.info("[DEBUG THREAD] Released resultsAvailableCond in perform_experiment.")
+        return result_value, trial_result
+
+    def notifyStarted1(self):
         # notify hpo_service.startExperiment() that experiment is ready to accept results
         if not self.hasStarted():
             try:
@@ -116,7 +182,7 @@ class HpoExperiment:
             finally:
                 self.experimentStartedCond.release()
 
-    def perform_experiment(self):
+    def perform_experiment1(self):
         try:
             self.resultsAvailableCond.acquire()
             self.resultsAvailableCond.wait()
