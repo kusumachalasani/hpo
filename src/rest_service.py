@@ -179,10 +179,14 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         dirName = "plots/" + experiment_name
         plotsDir = os.path.dirname(os.path.realpath(dirName))
         plotFile = plotsDir + "/" + experiment_name + "/" + plot_type + ".html"
-        fin = open(plotFile)
-        content = fin.read()
-        fin.close()
-        return content
+        try:
+            fin = open(plotFile)
+            content = fin.read()
+            fin.close()
+            return content
+        except FileNotFoundError:
+            logger.warn("Plot file not found: " + plotFile)
+            return None
 
     def handle_generate_new_operation(self, json_object):
         """Process EXP_TRIAL_GENERATE_NEW operation."""

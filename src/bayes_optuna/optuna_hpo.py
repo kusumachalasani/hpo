@@ -327,14 +327,17 @@ class HpoExperiment:
                 plotsDir = os.path.dirname(os.path.realpath(dirName))
 
                 if plot_type == "tunable_importance":
+                    plotFile = plotsDir + "/" + self.experiment_name + "/tunable_importance.html"
                     try:
-                        plotFile = plotsDir + "/" + self.experiment_name + "/tunable_importance.html"
                         plot = optuna.visualization.plot_param_importances(study)
                     except ValueError:
                         plotmsg = "Cannot generate tunable importance with only a single trial!"
                         logger.warn(plotmsg)
                     except RuntimeError:
                         plotmsg = "Encountered zero total variance to generate tunable importance!"
+                        logger.warn(plotmsg)
+                    except Exception as e:
+                        plotmsg = "Cannot generate tunable importance: " + str(e)
                         logger.warn(plotmsg)
                 if plot_type == "optimization_history":
                     plot = optuna.visualization.plot_optimization_history(study)
